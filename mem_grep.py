@@ -11,6 +11,9 @@ def can_run() -> bool:
     return mgpybind._CanRun()
 
 def search(pid: int, search_bss:bool = True, search_stack: bool = True):
+    if can_run() is False:
+        raise SystemConfigurationError()
+    
     if pid < 1:
         raise ValueError(f"pid must be a positive integer")
     
