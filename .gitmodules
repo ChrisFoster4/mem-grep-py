@@ -4,3 +4,4 @@
 [submodule "mem-grep"]
 	path = mem-grep
 	url = https://github.com/chrisfoster4/mem-grep
+	branch = master
