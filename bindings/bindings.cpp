@@ -6,10 +6,12 @@
 #include "../mem-grep/lib/misc/structs.hpp"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <string.h>
 
 // TODO
 // ability to filter results
 // ability to inspect and edit matched objects
+//
 
 namespace py = pybind11;
 
@@ -74,6 +76,16 @@ Traverse(const pid_t pid, const std::vector<RemoteHeapPointer> &base_pointers,
   return HeapFilter::FlattenAndFilter(traversed, only_flatten);
 }
 
+py::memoryview FetchObject(const pid_t pid, const RemoteHeapPointer object){
+    const size_t size = GetMallocMetadata(object.points_to, pid, 100000);
+    
+    char* copy = RemoteMemory::Copy(pid, object.points_to, size);
+    auto buf = py::memoryview::from_memory(copy, size);
+    
+    delete[] copy;
+    return buf;
+}
+
 enum Allocators : uint32_t { GLIBC = 0 };
 
 PYBIND11_MODULE(mgpybind, m) {
@@ -81,6 +93,14 @@ PYBIND11_MODULE(mgpybind, m) {
   py::enum_<Allocators>(m, "Allocators")
       .value("GLIBC", Allocators::GLIBC)
       .export_values();
+    
+    
+    m.def("_FetchObject", &FetchObject, R"pbdoc(
+	Check if the system is configured to allow mem-grep to access other programs memory\n
+	Either run the program as root or run \"echo 0 > /proc/sys/kernel/yama/ptrace_scope\" as root
+    )pbdoc");
+      
+    
 
   m.def("_CanRun", &CanRun, R"pbdoc(
 	Check if the system is configured to allow mem-grep to access other programs memory\n
